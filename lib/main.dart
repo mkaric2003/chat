@@ -2,6 +2,7 @@
 
 import 'package:chat/allCostants/app_costants.dart';
 import 'package:chat/allProviders/auth_provider.dart';
+import 'package:chat/allProviders/chat_provider.dart';
 import 'package:chat/allProviders/home_provider.dart';
 import 'package:chat/allProviders/settings_provider.dart';
 import 'package:chat/allScreens/splash_screen.dart';
@@ -45,13 +46,21 @@ class MyApp extends StatelessWidget {
         ),
         Provider<SettingProvider>(
           create: (context) => SettingProvider(
-              firebaseFirestore: this.firebaseFirestore,
-              firebaseStorage: this.firebaseStorage,
-              prefs: this.prefs),
+            firebaseFirestore: this.firebaseFirestore,
+            firebaseStorage: this.firebaseStorage,
+            prefs: this.prefs,
+          ),
         ),
         Provider<HomeProvider>(
           create: (context) =>
               HomeProvider(firebaseFirestore: this.firebaseFirestore),
+        ),
+        Provider<ChatProvider>(
+          create: (context) => ChatProvider(
+            firebaseFirestore: this.firebaseFirestore,
+            firebaseStorage: this.firebaseStorage,
+            prefs: this.prefs,
+          ),
         )
       ],
       child: MaterialApp(

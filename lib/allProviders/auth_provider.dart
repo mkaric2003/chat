@@ -1,4 +1,6 @@
-// ignore_for_file: prefer_is_empty
+// ignore_for_file: prefer_is_empty, unused_import
+
+import 'dart:convert';
 
 import 'package:chat/allCostants/constants.dart';
 import 'package:chat/allCostants/firestore_constants.dart';
@@ -6,8 +8,11 @@ import 'package:chat/allModels/user_chat.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:http/http.dart' as http;
 
 enum Status {
   uninitialized,
@@ -21,6 +26,7 @@ class AuthProvider extends ChangeNotifier {
   final GoogleSignIn googleSignIn;
   final FirebaseAuth firebaseAuth;
   final FirebaseFirestore firebaseFirestore;
+  final FacebookAuth facebookAuth = FacebookAuth.instance;
   final SharedPreferences prefs;
 
   Status _status = Status.uninitialized;
@@ -121,4 +127,77 @@ class AuthProvider extends ChangeNotifier {
     await googleSignIn.signOut();
     notifyListeners();
   }
+
+  /*Future signInWithFacebook() async {
+    final LoginResult? result = await facebookAuth.login();
+    if (result != null) {
+      final graphResponse = await http.get(Uri.parse(
+          'https://graph.facebook.com/v2.12/me?fields=name,picture.width(800).height(800),first_name,last_name,email&access_token=${result.accessToken?.token}'));
+
+      final profile = jsonDecode(graphResponse.body);
+      if (result.status == LoginStatus.success) {
+        try {
+          final OAuthCredential credential =
+              FacebookAuthProvider.credential(result.accessToken!.token);
+          User? firebaseUser =
+              (await firebaseAuth.signInWithCredential(credential)).user;
+
+          if (firebaseUser != null) {
+            final QuerySnapshot result = await firebaseFirestore
+                .collection(FirestoreConstants.pathUserCollection)
+                .where(FirestoreConstants.id, isEqualTo: firebaseUser.uid)
+                .get();
+            final List<DocumentSnapshot> document = result.docs;
+            if (document.length == 0) {
+              firebaseFirestore
+                  .collection(FirestoreConstants.pathUserCollection)
+                  .doc(firebaseUser.uid)
+                  .set({
+                FirestoreConstants.nickname: firebaseUser.displayName,
+                FirestoreConstants.photoUrl: firebaseUser.photoURL,
+                FirestoreConstants.id: firebaseUser.uid,
+                'createdAt': DateTime.now().millisecondsSinceEpoch.toString(),
+                FirestoreConstants.chattingWith: null,
+              });
+
+              User currentUser = firebaseUser;
+              await prefs.setString(FirestoreConstants.id, currentUser.uid);
+              await prefs.setString(
+                  FirestoreConstants.nickname, currentUser.displayName ?? "");
+              await prefs.setString(
+                  FirestoreConstants.photoUrl, currentUser.photoURL ?? "");
+              await prefs.setString(FirestoreConstants.phoneNumber,
+                  currentUser.phoneNumber ?? "");
+            } else {
+              DocumentSnapshot documentSnapshot = document[0];
+              UserChat userChat = UserChat.fromDocument(documentSnapshot);
+
+              await prefs.setString(FirestoreConstants.id, userChat.id);
+              await prefs.setString(
+                  FirestoreConstants.nickname, userChat.nickname);
+              await prefs.setString(
+                  FirestoreConstants.photoUrl, userChat.photoUrl);
+              await prefs.setString(
+                  FirestoreConstants.aboutMe, userChat.aboutMe);
+              await prefs.setString(
+                  FirestoreConstants.phoneNumber, userChat.phoneNumber);
+            }
+            _status = Status.authenticated;
+            notifyListeners();
+            return true;
+          } else {
+            _status = Status.authenticateError;
+            notifyListeners();
+            return false;
+          }
+        } catch (e) {
+          return '';
+        }
+      }
+    } else {
+      _status = Status.authenticateCanceled;
+      notifyListeners();
+      return false;
+    }
+  }*/
 }

@@ -1,4 +1,4 @@
-// ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors, implementation_imports, unused_field, prefer_final_fields, prefer_const_literals_to_create_immutables, non_constant_identifier_names, avoid_unnecessary_containers, sized_box_for_whitespace, unnecessary_string_interpolations
+// ignore_for_file: use_key_in_widget_constructors, prefer_const_constructors, implementation_imports, unused_field, prefer_final_fields, prefer_const_literals_to_create_immutables, non_constant_identifier_names, avoid_unnecessary_containers, sized_box_for_whitespace, unnecessary_string_interpolations, unnecessary_import
 
 import 'dart:async';
 import 'dart:io';
@@ -17,7 +17,10 @@ import 'package:chat/main.dart';
 import 'package:chat/utilities/debouncer.dart';
 import 'package:chat/utilities/utilities.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/src/provider.dart';
@@ -28,6 +31,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final FirebaseMessaging firebaseMessaging = FirebaseMessaging.instance;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final ScrollController listScrollController = ScrollController();
   TextEditingController searchBarTec = TextEditingController();
@@ -197,8 +204,70 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(builder: (context) => LoginScreen()),
           (Route<dynamic> route) => false);
     }
+    registerNotification();
+    configureLocalNotification();
     listScrollController.addListener(scrollListener);
     super.initState();
+  }
+
+  void registerNotification() {
+    firebaseMessaging.requestPermission();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      if (message.notification != null) {
+        showNotification(message.notification!);
+      }
+      return;
+    });
+    firebaseMessaging.getToken().then((token) {
+      if (token != null) {
+        homeProvider.updateDataFirestore(
+          FirestoreConstants.pathUserCollection,
+          currentUserId,
+          {'pushToken': token},
+        );
+      }
+    }).catchError((error) {
+      Fluttertoast.showToast(msg: error.message.toString());
+    });
+  }
+
+  void configureLocalNotification() {
+    AndroidInitializationSettings initializationAndroidSettings =
+        AndroidInitializationSettings("app_icon");
+    IOSInitializationSettings initializationIOSSettings =
+        IOSInitializationSettings();
+    InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationAndroidSettings,
+      iOS: initializationIOSSettings,
+    );
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
+
+  void showNotification(RemoteNotification remoteNotification) async {
+    AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails(
+      "com.example.chat",
+      "MyChat",
+      icon: "app_icon",
+      playSound: true,
+      enableVibration: true,
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    IOSNotificationDetails iosNotificationDetails = IOSNotificationDetails();
+    NotificationDetails notificationDetails = NotificationDetails(
+      android: androidNotificationDetails,
+      iOS: iosNotificationDetails,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      remoteNotification.title,
+      remoteNotification.body,
+      notificationDetails,
+      payload: null,
+    );
   }
 
   @override

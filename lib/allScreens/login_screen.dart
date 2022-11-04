@@ -54,6 +54,19 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Image.asset("images/google_login.jpg"),
             ),
           ),
+          /* Padding(
+            padding: const EdgeInsets.all(20),
+            child: GestureDetector(
+              onTap: () async {
+                bool isSuccess = await authProvider.signInWithFacebook();
+                if (isSuccess) {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (context) => HomeScreen()));
+                }
+              },
+              child: Image.asset("images/app_icon.png"),
+            ),
+          ),*/
           Center(
             child: authProvider.status == Status.authenticating
                 ? LoadingView()
